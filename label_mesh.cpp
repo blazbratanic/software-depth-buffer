@@ -1,44 +1,121 @@
 #ifndef LABEL_MESH_HPP
 #define LABEL_MESH_HPP
 
-#include <util/array2d.hpp>
+#include <util/array2d.h>
+#include <util/array2dview.h>
+#include <util/array2dview_op.h>
+#include <util/visualization.hpp>
+#include <bsp/mesh.hpp>
 
-bool pnpoly(Mesh const& mesh, Mesh::FaceIter face, float px, float py) {
-  bool c = false;
+#include <iostream>
 
-  auto head_it = mesh.cfv_begin(face);
-  auto tail_it = --mesh.cfv_end(face);
+namespace detail {
+OpenMesh::Vec4f get_plane_parameters(OpenMesh::Vec3f const& p0,
+                                     OpenMesh::Vec3f const& p1,
+                                     OpenMesh::Vec3f const& p2) {
+  auto p0p1 = p1 - p0;
+  auto p0p2 = p2 - p0;
+  auto np = p0p1 % p0p2;  // normal to the plane (a, b, c) in plane equation
+  float d = p0 | np;
+  return {np[0], np[1], np[2], d};
+}
 
-  auto fv_end = mesh.cfv_end(face);
+int orient2d(OpenMesh::Vec3f const& p0, OpenMesh::Vec3f const& p1,
+             OpenMesh::Vec3f const& p2) {
+  return (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]);
+}
 
-  for (; head_it != fv_end; tail_it = head_it++) {
-    if (((mesh.point(*head_it)[1] > py) != (mesh.point(*tail_it)[1] > py)) &&
-        (px < (mesh.point(*tail_it)[0] - mesh.point(*head_it)[0]) *
-                      (py - mesh.point(*head_it)[0]) /
-                      (mesh.point(*tail_it)[1] - mesh.point(*head_it)[1]) +
-                  mesh.point(*head_it)[0]))
-      c = !c;
+void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
+                   Array2dView<int> labels, Array2dView<float> depth_map) {
+
+  auto fv_it = mesh.cfv_begin(face_handle);
+  OpenMesh::Vec3f p0 = mesh.point(*fv_it++);
+  OpenMesh::Vec3f p1 = mesh.point(*fv_it++);
+  OpenMesh::Vec3f p2 = mesh.point(*fv_it++);
+
+  std::cout << p0 << p1 << p2 << std::endl;
+
+  auto pp = get_plane_parameters(p0, p1, p2); // plane_parameters
+
+  int xmin = static_cast<int>(std::min({p0[0], p1[0], p2[0]}));
+  int xmax = static_cast<int>(std::max({p0[0], p1[0], p2[0]}));
+  int ymin = static_cast<int>(std::min({p0[1], p1[1], p2[1]}));
+  int ymax = static_cast<int>(std::max({p0[1], p1[1], p2[1]}));
+
+  std::cout << "xmin: " << xmin << ", xmax: " << xmax << ", ymin: " << ymin
+            << ", ymax: " << ymax << std::endl;
+  // clipping
+  xmin = std::max(xmin, 0);
+  xmax = std::min(xmax, static_cast<int>(labels.GetSize1()) - 1);
+  ymin = std::max(ymin, 0);
+  ymax = std::min(ymax, static_cast<int>(labels.GetSize0()) - 1);
+  if (xmax < 0 || ymax < 0) return;
+
+  auto v0 = p0 - p1;
+  auto v1 = p1 - p2;
+  auto v2 = p2 - p0;
+  // Barycentric coordinates at minX/minY corner
+  OpenMesh::Vec3f init_point = {static_cast<float>(xmin),
+                                static_cast<float>(ymin), 0.0f};
+  int w0_row = orient2d(v1, v2, init_point);
+  int w1_row = orient2d(v2, v0, init_point);
+  int w2_row = orient2d(v0, v1, init_point);
+
+  std::cout << "xmin: " << xmin << ", xmax: " << xmax << ", ymin: " << ymin
+            << ", ymax: " << ymax << std::endl;
+
+  for (size_t row = ymin; row <= ymax; ++row) {
+    float z = -(pp[0] * xmin + pp[1] * ymin + pp[3]) / pp[2];
+    float dz = -pp[0] / pp[2];
+    int w0 = w0_row;
+    int w1 = w1_row;
+    int w2 = w2_row;
+
+    for (int col = xmin; col <= xmax; ++col) {
+
+      // If p is on or inside all edges, render pixel.
+      if (w0 >= 0 && w1 >= 0 && w2 >= 0) {// && z >= depth_map(row, col)) {
+        //std::cout << "Row: " << row << ", col: " << col << "depth: " << z << std::endl;
+        depth_map(row, col) = z;
+        labels(row, col) = 1;
+      }
+      // One step to the right
+      w0 += v1[1];
+      w1 += v2[1];
+      w2 += v0[1];
+      z += dz;
+    }
+    // One row step
+    w0_row += v1[0];
+    w1_row += v2[0];
+    w2_row += v0[0];
   }
-  return c;
 }
-
-float get_height(Mesh const & mesh, Mesh::FaceIter face, float px, flaot py) {
-
-
-
 }
-
-
 
 int get_projected_mesh_label(Mesh& mesh, Array2dView<int> labeled_image,
                              Array2dView<float> depth_map) {
-  sil::fill(labeled_image, -1);
+  sil::fill(labeled_image, 0);
   sil::fill(depth_map, 0.0f);
+  int label = 0;
 
   for (const auto& face : mesh.faces()) {
-    if (mesh.data(face).visible) {
-    }
+    //if (mesh.data(face).visible) {
+      detail::fill_triangle(mesh, face, label++, labeled_image, depth_map);
+    //}
   }
+}
+
+int main() {
+  auto mesh = read_mesh("model.stl");
+  transform_mesh(mesh, sil::transformations::scale3d(1000));
+  Array2d<float> depth_map(500, 500);
+  Array2d<int> label(500, 500);
+  get_projected_mesh_label(mesh, label, depth_map);
+  sil::multiply(depth_map, 200.0f, depth_map);
+  save_image(depth_map, "depth_map.png");
+  save_image(label, "label.png");
+  return 0;
 }
 
 #endif
