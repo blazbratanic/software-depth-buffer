@@ -105,7 +105,7 @@ void get_projected_depth_and_label(Mesh mesh, TransformationMatrix3d H,
     auto c1 = mesh.color(*fv_it++);
     auto c2 = mesh.color(*fv_it++);
     if (c0 != c1 || c1 != c2) {
-      std::runtime_error(
+      throw std::runtime_error(
           "Vertex colors of one or several faces do not match. Cannot create "
           "label image");
     }
