@@ -36,14 +36,13 @@ void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
   std::cout << p0 << p1 << p2 << std::endl;
 
   auto pp = get_plane_parameters(p0, p1, p2); // plane_parameters
+  if (pp[2] < 1e-2f) return;
 
   int xmin = static_cast<int>(std::min({p0[0], p1[0], p2[0]}));
   int xmax = static_cast<int>(std::max({p0[0], p1[0], p2[0]}));
   int ymin = static_cast<int>(std::min({p0[1], p1[1], p2[1]}));
   int ymax = static_cast<int>(std::max({p0[1], p1[1], p2[1]}));
 
-  std::cout << "xmin: " << xmin << ", xmax: " << xmax << ", ymin: " << ymin
-            << ", ymax: " << ymax << std::endl;
   // clipping
   xmin = std::max(xmin, 0);
   xmax = std::min(xmax, static_cast<int>(labels.GetSize1()) - 1);
@@ -54,19 +53,25 @@ void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
   auto v0 = p0 - p1;
   auto v1 = p1 - p2;
   auto v2 = p2 - p0;
+
+  int A01 = p0[1] - p1[1], B01 = p1[0] - p0[0];
+  int A12 = p1[1] - p2[1], B12 = p2[0] - p1[0];
+  int A20 = p2[1] - p0[1], B20 = p0[0] - p2[0];
+
   // Barycentric coordinates at minX/minY corner
   OpenMesh::Vec3f init_point = {static_cast<float>(xmin),
                                 static_cast<float>(ymin), 0.0f};
-  int w0_row = orient2d(v1, v2, init_point);
-  int w1_row = orient2d(v2, v0, init_point);
-  int w2_row = orient2d(v0, v1, init_point);
+  int w0_row = orient2d(p1, p2, init_point);
+  int w1_row = orient2d(p2, p0, init_point);
+  int w2_row = orient2d(p0, p1, init_point);
 
   std::cout << "xmin: " << xmin << ", xmax: " << xmax << ", ymin: " << ymin
             << ", ymax: " << ymax << std::endl;
 
+
+  float dz = -pp[0] / pp[2];
   for (size_t row = ymin; row <= ymax; ++row) {
     float z = -(pp[0] * xmin + pp[1] * ymin + pp[3]) / pp[2];
-    float dz = -pp[0] / pp[2];
     int w0 = w0_row;
     int w1 = w1_row;
     int w2 = w2_row;
@@ -74,21 +79,23 @@ void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
     for (int col = xmin; col <= xmax; ++col) {
 
       // If p is on or inside all edges, render pixel.
-      if (w0 >= 0 && w1 >= 0 && w2 >= 0) {// && z >= depth_map(row, col)) {
-        //std::cout << "Row: " << row << ", col: " << col << "depth: " << z << std::endl;
+      if (w0 >= 0 && w1 >= 0 && w2 >= 0 && z >= depth_map(row, col)) {
+         std::cout << "Row: " << row << ", col: " << col << "depth: " << z <<
+         std::endl;
         depth_map(row, col) = z;
         labels(row, col) = 1;
       }
       // One step to the right
-      w0 += v1[1];
-      w1 += v2[1];
-      w2 += v0[1];
+      w0 += A12;
+      w1 += A20;
+      w2 += A01;
       z += dz;
     }
+
     // One row step
-    w0_row += v1[0];
-    w1_row += v2[0];
-    w2_row += v0[0];
+    w0_row += B12;
+    w1_row += B20;
+    w2_row += B01;
   }
 }
 }
