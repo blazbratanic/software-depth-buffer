@@ -2,8 +2,8 @@
 #include <util/array2dview.h>
 #include <util/array2dview_op.h>
 #include <util/visualization.hpp>
-#include <bsp/hidden_surface_removal.hpp>
-#include <bsp/mesh.hpp>
+#include <mesh/hidden_surface_removal.hpp>
+#include <mesh/mesh.hpp>
 
 #include <chrono>
 #include <iostream>
@@ -112,7 +112,7 @@ void get_projected_mesh_label(Mesh mesh, TransformationMatrix3d H,
           "label image");
     }
     int r = c0[0], g = c0[1], b = c0[2];
-    int label = r * r * r + g * g + b;
+    int label = 256 * 256 * r + 256 * g + b;
     if (mesh.data(face).visible) {
       detail::fill_triangle(mesh, face, label, labeled_image, depth_map);
     }
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
   auto mesh = read_mesh(argv[1]);
   TransformationMatrix3d H =
       sil::transformations::translate3d(250.0f, 250.0f, 0.0f) *
-      sil::transformations::rotate3d(1.0f, 0.0f, 0.5f) *
+      sil::transformations::rotate3d(1.57f, 0.0f, 0.0f) *
       sil::transformations::scale3d(50);
 
   mesh.update_normals();
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
 
   sil::multiply(depth_map, 200.0f, depth_map);
   save_image(depth_map, "depth_map.png");
-  save_label(label, "label.png");
+  save_label(label, "label.jpg");
   return 0;
 }
 

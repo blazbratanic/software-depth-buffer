@@ -7,7 +7,6 @@
 
 #include <util/fixed_size_matrix.hpp>
 #include <transformations/transformations3d.hpp>
-#include <features/object_pose.hpp>
 
 OpenMesh::Vec3f compute_centroid(Mesh const& mesh);
 

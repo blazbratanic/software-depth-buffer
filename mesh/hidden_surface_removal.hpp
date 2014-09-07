@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <bsp/mesh.hpp>
+#include <mesh/mesh.hpp>
 
 static void hidden_surface_removal(Mesh &mesh, OpenMesh::Vec3f view) {
 

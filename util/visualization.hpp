@@ -43,7 +43,7 @@ void save_label(ConstArray2dView<int> image, std::string filename) {
   FOREACH2D(i0, i1, image) {
     int b = image(i0, i1) % 256;
     int g = ((image(i0, i1) - b) / 256) % 256;
-    int r = ((image(i0, i1) - b - g) / 256 * 256) % 256;
+    int r = ((image(i0, i1) - b - 256 * g) / (256 * 256)) % 256;
     im.at<cv::Vec3b>(i0, i1)[0] = r;
     im.at<cv::Vec3b>(i0, i1)[1] = g;
     im.at<cv::Vec3b>(i0, i1)[2] = b;

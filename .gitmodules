@@ -1,0 +1,3 @@
+[submodule "openmesh"]
+	path = openmesh
+	url = git@github.com:blazbratanic/openmesh.git

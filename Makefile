@@ -9,8 +9,8 @@ label_mesh: label_mesh.o mesh.o
 label_mesh.o: label_mesh.cpp 
 	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS)  -o label_mesh.o -c label_mesh.cpp 
 
-mesh.o: bsp/mesh.cpp
-	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS) -o mesh.o -c bsp/mesh.cpp 
+mesh.o: mesh/mesh.cpp
+	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS) -o mesh.o -c mesh/mesh.cpp 
 
 
 
