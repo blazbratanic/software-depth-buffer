@@ -1,3 +1,5 @@
+#include "label_mesh.hpp"
+
 #include <util/array2d.h>
 #include <util/array2dview.h>
 #include <util/array2dview_op.h>
@@ -124,14 +126,16 @@ void get_projected_depth_and_label(Mesh mesh, TransformationMatrix3d H,
 #include <util/visualization.hpp>
 
 int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    std::cerr << "./label_mesh model_name.ply" << std::endl;
+    std::exit(1);
+  }
+
   auto mesh = read_mesh(argv[1]);
   TransformationMatrix3d H =
       sil::transformations::translate3d(250.0f, 250.0f, 0.0f) *
       sil::transformations::rotate3d(1.57f, 0.0f, 0.0f) *
       sil::transformations::scale3d(50);
-  // TransformationMatrix3d H =
-  // sil::transformations::translate3d(250.0f, 250.0f, 0.0f) *
-  // sil::transformations::scale3d(50);
 
   mesh.update_normals();
   Array2d<float> depth_map(500, 500);
