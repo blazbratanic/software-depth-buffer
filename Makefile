@@ -1,10 +1,19 @@
 GXX = g++
-FLAGS = -std=c++1y -Werror -pthread -O0 -g
-INCLUDE = -I ../ -I ../../third-party/openmesh/src
-LIBS = -l OpenMeshCore -l GL -l GLU -l GLEW -l glut
+FLAGS = -std=c++1y -pthread -O3
+INCLUDE = -I ./ -I ./openmesh/src
+LIBS = -l OpenMeshCore -l opencv_core -l opencv_highgui
 
-label_mesh: label_mesh.cpp
-	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS) -o label_mesh label_mesh.cpp
+label_mesh: label_mesh.o mesh.o
+	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS)  mesh.o label_mesh.o -o label_mesh -pthread
+
+label_mesh.o: label_mesh.cpp 
+	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS)  -o label_mesh.o -c label_mesh.cpp 
+
+mesh.o: bsp/mesh.cpp
+	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS) -o mesh.o -c bsp/mesh.cpp 
+
+
+
 
 interactive: interactive_gl.cpp
 	$(GXX) $(FLAGS) $(INCLUDE) $(LIB_DIRS) $(LIBS) -o interactive interactive_gl.cpp
