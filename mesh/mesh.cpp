@@ -10,16 +10,24 @@
 #include <features/object_pose.hpp>
 
 OpenMesh::Vec3f compute_centroid(Mesh const& mesh);
+
 // align centroid with coordinate axes origin?
 Mesh read_mesh(std::string filename, bool align_centroid) {
 
   Mesh mesh;
   mesh.request_face_normals();
+  mesh.request_vertex_colors();
+  mesh.request_face_colors();
 
   OpenMesh::IO::Options opt;
+
+  opt += OpenMesh::IO::Options::VertexColor;
+  opt += OpenMesh::IO::Options::VertexNormal;
+  opt += OpenMesh::IO::Options::VertexTexCoord;
+  opt += OpenMesh::IO::Options::FaceColor;
   opt += OpenMesh::IO::Options::FaceNormal;
-  opt += OpenMesh::IO::Options::Binary;
-  OpenMesh::IO::read_mesh(mesh, filename);
+  opt += OpenMesh::IO::Options::FaceTexCoord;
+  OpenMesh::IO::read_mesh(mesh, filename, opt);
   mesh.update_normals();
 
   if (align_centroid) {

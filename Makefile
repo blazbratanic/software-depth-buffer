@@ -1,5 +1,5 @@
 GXX = g++
-FLAGS = -std=c++1y -pthread -O3
+FLAGS = -std=c++1y -pthread -O3 -DSTANDALONE_APP
 INCLUDE = -I ./ -I ./openmesh/src
 LIBS = -l OpenMeshCore -l opencv_core -l opencv_highgui
 
