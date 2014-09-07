@@ -1,7 +1,6 @@
 #include <util/array2d.h>
 #include <util/array2dview.h>
 #include <util/array2dview_op.h>
-#include <util/visualization.hpp>
 #include <mesh/hidden_surface_removal.hpp>
 #include <mesh/mesh.hpp>
 
@@ -33,8 +32,7 @@ void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
   OpenMesh::Vec3f p2 = mesh.point(*fv_it++);
 
   auto pp = get_plane_parameters(p0, p1, p2);  // plane_parameters
-  if (std::abs(pp[2]) < 1e-4f)
-    return;
+  if (std::abs(pp[2]) < 1e-4f) return;
 
   int xmin = static_cast<int>(std::min({p0[0], p1[0], p2[0]}));
   int xmax = static_cast<int>(std::max({p0[0], p1[0], p2[0]}));
@@ -90,10 +88,10 @@ void fill_triangle(Mesh const& mesh, Mesh::FaceHandle face_handle, int label,
 }
 }
 
-void get_projected_mesh_label(Mesh mesh, TransformationMatrix3d H,
-                              Array2dView<int> labeled_image,
-                              Array2dView<float> depth_map) {
-  transform_mesh(mesh, H); 
+void get_projected_depth_and_label(Mesh mesh, TransformationMatrix3d H,
+                                   Array2dView<int> labeled_image,
+                                   Array2dView<float> depth_map) {
+  transform_mesh(mesh, H);
 
   sil::fill(labeled_image, 0);
   sil::fill(depth_map, std::numeric_limits<float>::lowest());
@@ -122,8 +120,8 @@ void get_projected_mesh_label(Mesh mesh, TransformationMatrix3d H,
                  [](float d, int l) { return l ? d : 0.0f; });
 }
 
-
 #ifdef STANDALONE_APP
+#include <util/visualization.hpp>
 
 int main(int argc, char* argv[]) {
   auto mesh = read_mesh(argv[1]);
@@ -131,13 +129,16 @@ int main(int argc, char* argv[]) {
       sil::transformations::translate3d(250.0f, 250.0f, 0.0f) *
       sil::transformations::rotate3d(1.57f, 0.0f, 0.0f) *
       sil::transformations::scale3d(50);
+  // TransformationMatrix3d H =
+  // sil::transformations::translate3d(250.0f, 250.0f, 0.0f) *
+  // sil::transformations::scale3d(50);
 
   mesh.update_normals();
   Array2d<float> depth_map(500, 500);
   Array2d<int> label(500, 500);
   auto start = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i <100; ++i) 
-    get_projected_mesh_label(mesh, H, label, depth_map);
+  for (int i = 0; i < 100; ++i)
+    get_projected_depth_and_label(mesh, H, label, depth_map);
   auto end = std::chrono::high_resolution_clock::now();
   std::cout << "100 iterations lasted: "
             << std::chrono::duration_cast<std::chrono::milliseconds>(
